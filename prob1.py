@@ -104,12 +104,12 @@ def AStarSearch(start, goals, graph, steps, heuristic, steps_taken=0, max_fitnes
         print(new_reached_goals, len(new_reached_goals))
      
         if iterative_deepening:
-            f = min(0.5 * g + heuristic(neighbor, goals, new_reached_goals) for neighbor in node.neighbors)
+            f = min(g + heuristic(neighbor, goals, new_reached_goals) for neighbor in node.neighbors)
             if f < max_fitness:
                 return (f, steps_taken)
 
         for neighbor in node.neighbors:
-            f = 0.5 * g + heuristic(neighbor, goals, new_reached_goals)
+            f = g + heuristic(neighbor, goals, new_reached_goals)
             print(f)
             # print(f) 
             heapq.heappush(frontier, (f, neighbor.value, g + 1, new_reached_goals))
@@ -129,5 +129,5 @@ def IDASearch(start, goals, graph, steps, heuristic):
     
 
 test = MountOlympus()
-AStarSearch(11, [x for x in range(15)], test.nodes, 100, nodes_to_explore)
+AStarSearch(11, [x for x in range(15)], test.nodes, 500, nodes_to_explore)
 
