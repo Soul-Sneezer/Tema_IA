@@ -63,56 +63,50 @@ class MountOlympus:
         self.nodes[21].addNeighbor(self.nodes[22])
         self.nodes[22].addNeighbor(self.nodes[23])
 
-        #self.calculate_distances(self.nodes)
+        self.calculate_distances(self.nodes)
         #for i in range(0, 24):
         #    print(f"{i + 1} : {self.nodes[0].distance[i]}")
-        #print(self.nodes)
+        print(self.nodes)
 
     def query(self, query_id, start_node, goal_nodes, steps, algorithm):
        pass 
 
 def nodes_to_explore(node, goals, visited_goals): # nodes left to explore
     value = len(goals) - len(visited_goals) 
-    if node.value in goals:
-        value -= 1 
+    #if node.value in goals:
+    #    value -= 1 
 
     return value
 
-def farthest_goal(node, goals, visited_goals): # distance to farthest goal
-    if node.value in goals:
-        return 0
-
-    distance = 0
+def closest_unexplored_node(node, goals, visited_goals):
+    shortest_dist = 10000 
+    closest_goal = None
     for goal in goals:
-        if node.distance[goal.value] > distance:
-            distance = node.distance[goal.value]
-
-    return distance
+        if goal not in visited_goals:
+            if node.distance[goal] < shortest_dist:
+                shortest_dist = node.distance[goal]
+    
+    return shortest_dist
 
 def AStarSearch(start, goals, graph, steps, heuristic):
     steps_taken = 0
     
-    reached = []
-    reached_goals = frozenset()
-
     frontier = []
-    heapq.heappush(frontier, (heuristic(graph[start], goals, reached_goals), start, 0, reached_goals))
+    heapq.heappush(frontier, (heuristic(graph[start], goals, frozenset()), start, 0, frozenset()))
      
     while frontier:
         steps_taken += 1 
-        f, value, g, current_reached_goals = heapq.heappop(frontier)
-        print(value, f)
+        f, value, g, reached_goals = heapq.heappop(frontier)
         node = graph[value]
-
+        
         if value in goals:
-            new_reached_goals = current_reached_goals.union([value])
+            new_reached_goals = reached_goals.union([value])
         else:
-            new_reached_goals = current_reached_goals
-
-        min_f = 10000
-        for neighbor in node.neighbors:  
-            f = g + 1 + heuristic(neighbor, goals, new_reached_goals)
-            
+            new_reached_goals = reached_goals
+        print(new_reached_goals, len(new_reached_goals))
+        for neighbor in node.neighbors:
+            f = g + heuristic(neighbor, goals, new_reached_goals)
+            # print(f) 
             heapq.heappush(frontier, (f, neighbor.value, g + 1, new_reached_goals))
         
         if steps_taken  == steps:
@@ -125,5 +119,5 @@ def IDASearch(start, goals, graph, steps, heuristic):
     pass
 
 test = MountOlympus()
-AStarSearch(11, [x for x in range(20)], test.nodes, 3, nodes_to_explore)
+AStarSearch(11, [x for x in range(15)], test.nodes, 1, nodes_to_explore)
 
