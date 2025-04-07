@@ -76,7 +76,7 @@ def nodes_to_explore(node, goals, visited_goals): # nodes left to explore
     #if node.value in goals:
     #    value -= 1 
 
-    return 2 * value
+    return value
 
 def closest_unexplored_node(node, goals, visited_goals):
     shortest_dist = 10000 
@@ -101,16 +101,16 @@ def AStarSearch(start, goals, graph, steps, heuristic, steps_taken=0, max_fitnes
             new_reached_goals = reached_goals.union([value])
         else:
             new_reached_goals = reached_goals
-        #print(new_reached_goals, len(new_reached_goals))
+        print(new_reached_goals, len(new_reached_goals))
      
         if iterative_deepening:
-            f = min(g + heuristic(neighbor, goals, new_reached_goals) for neighbor in node.neighbors)
+            f = min(0.5 * g + heuristic(neighbor, goals, new_reached_goals) for neighbor in node.neighbors)
             if f < max_fitness:
                 return (f, steps_taken)
 
         for neighbor in node.neighbors:
-            f = g + heuristic(neighbor, goals, new_reached_goals)
-            #print(f)
+            f = 0.5 * g + heuristic(neighbor, goals, new_reached_goals)
+            print(f)
             # print(f) 
             heapq.heappush(frontier, (f, neighbor.value, g + 1, new_reached_goals))
         
@@ -129,5 +129,5 @@ def IDASearch(start, goals, graph, steps, heuristic):
     
 
 test = MountOlympus()
-IDASearch(11, [x for x in range(15)], test.nodes, 300, nodes_to_explore)
+AStarSearch(11, [x for x in range(15)], test.nodes, 100, nodes_to_explore)
 
