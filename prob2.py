@@ -10,6 +10,7 @@ class State:
         self.player = player
         self.current_stage = current_stage
         self.board = board
+        self.flying_allowed = False
 
     def next_moves(self):
         states = []
@@ -37,83 +38,155 @@ class Node:
     def __repr__(self):
         return f"value: {self.index} {[neighbor.index for neighbor in self.neighbors]}"
 
-def minmax_search(game, state):
+class Weight(Enum):
+    MATERIAL_WEIGHT = 100 
+    POTENTIAL_MILL_WEIGHT = 50 
+    BLOCKED_WEIGHT = 30
+    MOBILITY_WEIGHT = 20
+    DOUBLE_MILL_WEIGHT = 100
+
+def nine_mens_morris_heuristic(game_state, player, opponent):
+    def get_piece_count(state, agent):
+        return state.pieces[agent]
+
+    def get_potential_mills(state, agent):
+        count = 0
+        for mill_line in MILL_LINES:  
+            pieces = [state.board[pos] for pos in mill_line]
+            if pieces.count(agent) == 2 and pieces.count(None) == 1:
+                count += 1
+        return count
+
+    def get_blocked_pieces(state, agent):
+        blocked = 0
+        for pos in state.board.get_positions(agent):
+            if not state.board.has_legal_moves(pos):
+                blocked += 1
+        return blocked
+
+    def get_mobility(state, agent):
+        if state.flying_allowed(agent):  
+            return 3 * state.board.empty_spots()  
+        return sum(len(state.board.legal_moves(pos)) for pos in state.board.get_positions(agent))
+
+    def has_double_mill(state, agent):
+        count = 0
+        for pos in state.board.get_positions(agent):
+            if count_double_mills(pos, agent, state.board):
+                count += 1
+        return count
+
+    score = 0
+    
+    player_pieces = get_piece_count(game_state, player)
+    opponent_pieces = get_piece_count(game_state, opponent)
+    score +=  MATERIAL_WEIGHT * (player_pieces - opponent_pieces)
+    
+    player_potential = get_potential_mills(game_state, player)
+    opponent_potential = get_potential_mills(game_state, opponent)
+    score += POTENTIAL_MILL_WEIGHT * (player_potential - opponent_potential)
+    
+    opponent_blocked = get_blocked_pieces(game_state, opponent)
+    player_blocked = get_blocked_pieces(game_state, player)
+    score += BLOCKED_WEIGHT * (opponent_blocked - player_blocked)
+    
+    player_mobility = get_mobility(game_state, player)
+    opponent_mobility = get_mobility(game_state, opponent)
+    score += MOBILITY_WEIGHT * (player_mobility - opponent_mobility)
+    
+    player_double = has_double_mill(game_state, player)
+    opponent_double = has_double_mill(game_state, opponent)
+    score += DOUBLE_MILL_WEIGHT * (player_double - opponent_double)
+
+    if opponent_pieces <= 2:
+        score += 1000  
+    if player_pieces <= 2:
+        score -= 1000  
+        
+    if is_placement_phase(game_state):
+        score += 20 * (player_potential - opponent_potential)
+    else:
+        score += 15 * (player_mobility - opponent_mobility)
+
+    return score
+
+def minmax_search(game, state):    
+    def max_value(game, state):
+        if game.is_terminal(state):
+            return (game.utility(state, player), None)
+        
+        v = -float('inf')
+
+        for a in game.actions(state):
+            v2, a2 = min_value(game, game.result(state, a))
+            if v2 > v:
+                v = v2 
+                move = a 
+
+        return (v, move)
+
+    def min_value(game, state):
+        if game.is_terminal(state):
+            return (game.utility(state, player), None)
+
+        v = float('inf')
+
+        for a in game.actions(state):
+            v2, a2 = max_value(game, game.result(state, a))
+            if v2 < v:
+                v = v2 
+                move = a 
+
+        return (v, move)
+
     player = game.to_move(state)
     value, move = max_value(game, state)
     return move
 
-def max_value(game, state):
-    if game.is_terminal(state):
-        return (game.utility(state, player), None)
     
-    v = -float('inf')
-
-    for a in game.actions(state):
-        v2, a2 = min_value(game, game.result(state, a))
-        if v2 > v:
-            v = v2 
-            move = a 
-
-    return (v, move)
-
-def min_value(game, state):
-    if game.is_terminal(state):
-        return (game.utility(state, player), None)
-
-    v = float('inf')
-
-    for a in game.actions(state):
-        v2, a2 = max_value(game, game.result(state, a))
-        if v2 < v:
-            v = v2 
-            move = a 
-
-    return (v, move)
-
 def alpha_beta_search(game, state):
+    def max_value(game, state, alpha, beta):
+        if game.is_terminal(state):
+            return (game.utility(state, player), None)
+
+        v = -float('inf')
+
+        for a in game.actions(state):
+            v2, a2 = min_value(game, game.result(state, a), alpha, beta)
+
+            if v2 > v:
+                v = v2 
+                move = a 
+                alpha = max(alpha, v)
+
+            if v >= beta:
+                return (v, move)
+
+        return (v, move)
+
+    def min_value(game, state, alpha, beta):
+        if game.is_terminal(state):
+            return (game.utility(state, player), None)
+
+        v = +float('inf')
+
+        for a in game.actions(state):
+            v2, a2 = max_value(game, game.result(state, a), alpha, beta)
+
+            if v2 < v:
+                v = v2 
+                move = a 
+                beta = min(beta, v)
+
+            if v <= alpha:
+                return (v, move) 
+
+        return (v, move)
     player = game.to_move(state)
     value, move = max_value_ab(game, state, -float('inf'), float('inf'))
 
     return move
-
-def max_value_ab(game, state, alpha, beta):
-    if game.is_terminal(state):
-        return (game.utility(state, player), None)
-
-    v = -float('inf')
-
-    for a in game.actions(state):
-        v2, a2 = min_value_ab(game, game.result(state, a), alpha, beta)
-
-        if v2 > v:
-            v = v2 
-            move = a 
-            alpha = max(alpha, v)
-
-        if v >= beta:
-            return (v, move)
-
-    return (v, move)
-
-def min_value_ab(game, state, alpha, beta):
-    if game.is_terminal(state):
-        return (game.utility(state, player), None)
-
-    v = +float('inf')
-
-    for a in game.actions(state):
-        v2, a2 = max_value_ab(game, game.result(state, a), alpha, beta)
-
-        if v2 < v:
-            v = v2 
-            move = a 
-            beta = min(beta, v)
-
-        if v <= alpha:
-            return (v, move) 
-
-    return (v, move)
-
+    
 def create_board():
     nodes = []
     for i in range(24):
