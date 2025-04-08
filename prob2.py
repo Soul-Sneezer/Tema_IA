@@ -37,6 +37,82 @@ class Node:
     def __repr__(self):
         return f"value: {self.index} {[neighbor.index for neighbor in self.neighbors]}"
 
+def minmax_search(game, state):
+    player = game.to_move(state)
+    value, move = max_value(game, state)
+    return move
+
+def max_value(game, state):
+    if game.is_terminal(state):
+        return (game.utility(state, player), None)
+    
+    v = -float('inf')
+
+    for a in game.actions(state):
+        v2, a2 = min_value(game, game.result(state, a))
+        if v2 > v:
+            v = v2 
+            move = a 
+
+    return (v, move)
+
+def min_value(game, state):
+    if game.is_terminal(state):
+        return (game.utility(state, player), None)
+
+    v = float('inf')
+
+    for a in game.actions(state):
+        v2, a2 = max_value(game, game.result(state, a))
+        if v2 < v:
+            v = v2 
+            move = a 
+
+    return (v, move)
+
+def alpha_beta_search(game, state):
+    player = game.to_move(state)
+    value, move = max_value_ab(game, state, -float('inf'), float('inf'))
+
+    return move
+
+def max_value_ab(game, state, alpha, beta):
+    if game.is_terminal(state):
+        return (game.utility(state, player), None)
+
+    v = -float('inf')
+
+    for a in game.actions(state):
+        v2, a2 = min_value_ab(game, game.result(state, a), alpha, beta)
+
+        if v2 > v:
+            v = v2 
+            move = a 
+            alpha = max(alpha, v)
+
+        if v >= beta:
+            return (v, move)
+
+    return (v, move)
+
+def min_value_ab(game, state, alpha, beta):
+    if game.is_terminal(state):
+        return (game.utility(state, player), None)
+
+    v = +float('inf')
+
+    for a in game.actions(state):
+        v2, a2 = max_value_ab(game, game.result(state, a), alpha, beta)
+
+        if v2 < v:
+            v = v2 
+            move = a 
+            beta = min(beta, v)
+
+        if v <= alpha:
+            return (v, move) 
+
+    return (v, move)
 
 def create_board():
     nodes = []
