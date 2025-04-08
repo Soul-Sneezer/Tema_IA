@@ -78,7 +78,24 @@ def nodes_to_explore(node, goals, visited_goals, graph): # nodes left to explore
 
     return value # with this heuristic A* basically devolves to a BFS (:
 
-def mst_heuristic(node, goals, visited_goals, graph):
+def mst_heuristic(node, goals, visited_goals, graph): 
+    # o euristica este admisibila daca nu suparestimeaza costul drumului final
+    # h(n) = suma muchiilor din arborele partial de cost minim
+    # P este drumul optim de la start care viziteaza toate nodurile goal 
+    # P trebuie sa formeze un subgraf conex care cuprinde nodurile goal si nodul start 
+    # arborele partial de cost minim format de noi este subgraful conex minimal care cuprinde toate nodurile
+    # din asta rezulta: h(n) <= costul drumului final
+
+    # euristica este de asemenea consistenta deoarece respecta inegalitatea triunghiului
+    # h(n) <= c(n, n') + h(n'), c(n, n') = 1 
+    # h(n) <= 1 + h(n'), h(n')= h(n) - 1 daca n' este unul din nodurile goal, deoarece am elimina doar muchia dintre n si n'
+    # daca n' este un nod intermediar,distanta dintre n' si cel mai apropiat nod goal nu poate fi mai mica decat distanta dintre n si cel mai 
+    # apropiat nod goal - 1
+    
+    # euristica este eficienta deoarece ajunge la o solutie mai repede decat BFS 
+    # ceea ce se poate observa in practica cand comparam 'mst_heuristic' cu 'nodes_to_explore',
+    # cand folosim 'nodes_to_explore' A* degenereaza la un BFS, deoarece f este constant(sau variaza cu +- 1)
+
     goals_to_visit = [goal for goal in goals if goal not in visited_goals]
 
     if len(goals_to_visit) <= 1:
@@ -88,11 +105,11 @@ def mst_heuristic(node, goals, visited_goals, graph):
     heap = []
     total_cost = 0
 
-    visited.add(goals_to_visit[0])
+    visited.add(node.value)
     
-    for node in goals_to_visit[1:]:
-        cost = graph[goals_to_visit[0]].distance[node]
-        heapq.heappush(heap, (cost, goals_to_visit[0], node))
+    for goal in goals_to_visit:
+        cost = graph[node.value].distance[goal]
+        heapq.heappush(heap, (cost, node.value, goal))
 
     while len(visited) < len(goals_to_visit):
         cost, u, v = heapq.heappop(heap)
