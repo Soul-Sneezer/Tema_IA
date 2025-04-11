@@ -275,7 +275,7 @@ class Game:
 
     def minmax_search(self, state):
         def max_value(state, depth):  
-            if depth >= self.max_depth:  
+            if self.is_terminal(state) or depth >= self.max_depth:  
                 return self.evaluate(state), None
             v = float('-inf')
             best_move = None
@@ -304,7 +304,7 @@ class Game:
             return v, best_move
 
         def min_value(state, depth):  
-            if depth >= self.max_depth:  
+            if self.is_terminal(state) or depth >= self.max_depth:  
                 return self.evaluate(state), None
 
             v = float('inf')
