@@ -69,7 +69,15 @@ class MountOlympus:
         #print(self.nodes)
 
     def query(self, query_id, start_node, goal_nodes, steps, algorithm):
-       pass 
+        if algorithm == "A*":
+            results = AStarSearch(start_node - 1, goal_nodes, test.nodes, steps, mst_heuristic)
+        else:
+            results = IDASearch(start_node - 1, goal_nodes, test.nodes, steps, mst_heuristic)
+
+        for result in results:
+            open_list.append(result[1] + 1)
+
+        print(pid, open_list)
 
 def nodes_to_explore(node, goals, visited_goals, graph): # nodes left to explore
     value = len(goals) - len(visited_goals) 
@@ -148,33 +156,49 @@ def AStarSearch(start, goals, graph, steps, heuristic, steps_taken=0, max_fitnes
             new_reached_goals = reached_goals.union([value])
         else:
             new_reached_goals = reached_goals
-        print(new_reached_goals, len(new_reached_goals))
-     
-        if iterative_deepening:
-            f = min(g + heuristic(neighbor, goals, new_reached_goals, graph) for neighbor in node.neighbors)
-            if f < max_fitness:
-                return (f, steps_taken)
-
+        #print(new_reached_goals, len(new_reached_goals))
+        
         for neighbor in node.neighbors:
             f = g + heuristic(neighbor, goals, new_reached_goals, graph)
             #print(f)
             # print(f) 
             heapq.heappush(frontier, (f, neighbor.value, g + 1, new_reached_goals))
-        
-        if steps_taken == steps:
-            #print(frontier)
-            return (f, steps_taken)
 
+        if steps_taken == steps:
+            return frontier
+
+        if iterative_deepening:
+            f = min(g + heuristic(neighbor, goals, new_reached_goals, graph) for neighbor in node.neighbors)
+            if f < max_fitness:
+                return (f, steps_taken)
+        
     return (None, None)
 
 def IDASearch(start, goals, graph, steps, heuristic):
     steps_taken = 0
     f = 1000
     while steps_taken < steps:
-        f, steps_taken = AStarSearch(start, goals, graph, steps, heuristic, steps_taken, f, True)
-        print (f, steps_taken)
-    
+        result = AStarSearch(start, goals, graph, steps, heuristic, steps_taken, f, True)
+        if type(result) == tuple:
+            f = result[0]
+            steps_taken = result[1]
+        else:
+            return result
 
 test = MountOlympus()
-AStarSearch(11, [x for x in range(15)], test.nodes, 100, mst_heuristic)
 
+open_list = []
+
+pid = input()
+start_node = int(input())
+goal_nodes = list(map(int, input().split()))
+
+for i in range(len(goal_nodes)):
+    goal_nodes[i] -= 1
+
+print (goal_nodes)
+
+steps = int(input())
+algorithm = input()
+
+test.query(pid, start_node, goal_nodes, steps, algorithm)
